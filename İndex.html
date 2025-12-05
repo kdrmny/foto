@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Biometric Photo Creator</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Tailwind Configuration -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        bg: '#1B2111',
+                        accent: '#82CB15',
+                        card: '#34495E',
+                        subtext: '#B0BEC5',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['Fira Code', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #1B2111;
+            color: white;
+            font-family: 'Inter', sans-serif;
+        }
+        .mono-text {
+            font-family: 'Fira Code', monospace;
+        }
+        /* Hide scrollbar for clean mobile look */
+        ::-webkit-scrollbar {
+            width: 0px;
+            background: transparent;
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .pulse {
+            animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .5; }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex justify-center items-start sm:items-center p-4">
+
+    <!-- Mobile Container -->
+    <div class="w-full max-w-md bg-transparent min-h-[80vh] relative overflow-hidden">
+        
+        <!-- Header -->
+        <header class="mb-6 flex justify-between items-center">
+            <div>
+                <h1 class="text-2xl font-bold tracking-tight text-white">Bio<span class="text-accent">Metric</span></h1>
+                <p class="text-subtext text-sm">Select a preset to begin</p>
+            </div>
+            <div class="h-8 w-8 rounded-full bg-card border border-gray-600 flex items-center justify-center text-xs text-accent mono-text">
+                PRO
+            </div>
+        </header>
+
+        <!-- Hidden File Input -->
+        <input type="file" id="imageInput" accept="image/*" class="hidden">
+
+        <!-- VIEW 1: DASHBOARD -->
+        <div id="view-dashboard" class="fade-in">
+            <div id="grid-container" class="grid grid-cols-2 gap-4 pb-20">
+                <!-- Grid items injected by JS -->
+            </div>
+        </div>
+
+        <!-- VIEW 2: PROCESSING -->
+        <div id="view-processing" class="hidden h-[60vh] flex flex-col items-center justify-center fade-in text-center">
+            <div class="relative w-24 h-24 mb-6">
+                <div class="absolute inset-0 border-4 border-card rounded-full"></div>
+                <div class="absolute inset-0 border-4 border-accent rounded-full border-t-transparent animate-spin"></div>
+                <div class="absolute inset-0 flex items-center justify-center text-2xl">📸</div>
+            </div>
+            <h2 class="text-xl font-bold mb-2">Processing...</h2>
+            <p class="text-subtext text-sm">Aligning face biometrics</p>
+            <p class="text-accent text-xs mono-text mt-2" id="processing-details">INITIALIZING...</p>
+        </div>
+
+        <!-- VIEW 3: SUCCESS -->
+        <div id="view-success" class="hidden fade-in flex flex-col h-full">
+            <!-- Preview Image -->
+            <div class="w-full aspect-[3/4] bg-black rounded-xl overflow-hidden mb-6 border-2 border-card relative group shadow-2xl">
+                <canvas id="previewCanvas" class="w-full h-full object-contain"></canvas>
+                <div class="absolute bottom-2 right-2 bg-black/70 px-2 py-1 rounded text-xs text-accent mono-text border border-accent/30">
+                    PREVIEW
+                </div>
+            </div>
+
+            <!-- Verification Checklist -->
+            <div class="bg-card/50 rounded-xl p-5 mb-6 backdrop-blur-sm border border-white/5">
+                <h3 class="text-white font-bold mb-4 flex items-center gap-2">
+                    <span class="text-accent">✓</span> Verification Passed
+                </h3>
+                
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between">
+                        <span class="text-subtext text-sm">Dimensions</span>
+                        <span class="text-white text-sm mono-text flex items-center gap-2">
+                            <span id="res-dims">600x600 px</span>
+                            <span class="text-accent">✓</span>
+                        </span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-subtext text-sm">File Size</span>
+                        <span class="text-white text-sm mono-text flex items-center gap-2">
+                            <span id="res-size">234 KB</span>
+                            <span class="text-accent">✓</span>
+                        </span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-subtext text-sm">Background</span>
+                        <span class="text-white text-sm flex items-center gap-2">
+                            <span id="res-desc" class="truncate max-w-[120px] text-right">White bg</span>
+                            <span class="text-accent">✓</span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="mt-auto space-y-3 pb-8">
+                <button class="w-full bg-accent hover:bg-[#71b312] text-black font-bold py-4 rounded-xl text-lg transition-colors shadow-[0_0_20px_rgba(130,203,21,0.3)] flex items-center justify-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                        <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd" />
+                    </svg>
+                    UNLOCK & DOWNLOAD
+                </button>
+                
+                <button onclick="resetApp()" class="w-full bg-transparent border border-card hover:bg-card text-subtext font-medium py-3 rounded-xl transition-colors">
+                    Start New Photo
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Application Logic -->
+    <script>
+        // --- Core Data ---
+        const presets = [
+            { name: "USA Visa / Green Card", w: 600, h: 600, kb: 240, flag: "🇺🇸", desc: "2x2 inch. White bg." },
+            { name: "Schengen Visa (EU)", w: 413, h: 531, kb: 500, flag: "🇪🇺", desc: "35x45mm. Standard." },
+            { name: "Turkey ID / Passport", w: 591, h: 709, kb: 250, flag: "🇹🇷", desc: "50x60mm Biometric." },
+            { name: "UK Visa", w: 600, h: 750, kb: 500, flag: "🇬🇧", desc: "Cream/Grey bg." },
+            { name: "China Visa", w: 354, h: 472, kb: 120, flag: "🇨🇳", desc: "Strict: 40-120KB." },
+            { name: "Saudi Arabia (Hajj)", w: 600, h: 600, kb: 100, flag: "🇸🇦", desc: "White bg mandatory." },
+            { name: "Dubai / UAE", w: 300, h: 369, kb: 60, flag: "🇦🇪", desc: "Very low size." },
+            { name: "OSYM (YKS/KPSS)", w: 600, h: 800, kb: 300, flag: "🇹🇷", desc: "For Exam Entry." },
+        ];
+
+        // --- State ---
+        let selectedPreset = null;
+
+        // --- DOM Elements ---
+        const gridContainer = document.getElementById('grid-container');
+        const fileInput = document.getElementById('imageInput');
+        const viewDashboard = document.getElementById('view-dashboard');
+        const viewProcessing = document.getElementById('view-processing');
+        const viewSuccess = document.getElementById('view-success');
+        const processingDetails = document.getElementById('processing-details');
+        const previewCanvas = document.getElementById('previewCanvas');
+        const ctx = previewCanvas.getContext('2d');
+
+        // --- Initialization ---
+        function init() {
+            renderDashboard();
+            setupEventListeners();
+        }
+
+        // --- View 1: Dashboard ---
+        function renderDashboard() {
+            gridContainer.innerHTML = '';
+            presets.forEach((preset, index) => {
+                const card = document.createElement('div');
+                card.className = 'bg-card p-4 rounded-xl cursor-pointer hover:ring-2 hover:ring-accent transition-all active:scale-95 group relative overflow-hidden';
+                card.onclick = () => selectPreset(index);
+
+                card.innerHTML = `
+                    <div class="flex justify-between items-start mb-2">
+                        <span class="text-3xl">${preset.flag}</span>
+                        <div class="bg-black/30 px-2 py-1 rounded text-[10px] text-accent mono-text border border-accent/20">
+                            MAX ${preset.kb}KB
+                        </div>
+                    </div>
+                    <h3 class="font-bold text-white text-sm leading-tight mb-1 group-hover:text-accent transition-colors">${preset.name}</h3>
+                    <p class="text-subtext text-xs mb-2 truncate">${preset.desc}</p>
+                    <div class="text-[10px] text-gray-400 mono-text bg-black/20 inline-block px-1.5 py-0.5 rounded">
+                        ${preset.w}x${preset.h} px
+                    </div>
+                `;
+                gridContainer.appendChild(card);
+            });
+        }
+
+        function setupEventListeners() {
+            fileInput.addEventListener('change', handleFileSelect);
+        }
+
+        function selectPreset(index) {
+            selectedPreset = presets[index];
+            fileInput.click();
+        }
+
+        // --- View 2: Logic & Simulation ---
+        function handleFileSelect(e) {
+            if (e.target.files && e.target.files[0]) {
+                const file = e.target.files[0];
+                
+                // Switch View
+                viewDashboard.classList.add('hidden');
+                viewProcessing.classList.remove('hidden');
+
+                // Simulate Steps
+                const steps = ["ANALYZING METADATA...", "DETECTING FACE...", "CROPPING TO RATIO...", "OPTIMIZING SIZE..."];
+                let stepIdx = 0;
+                
+                const interval = setInterval(() => {
+                    if(stepIdx < steps.length) {
+                        processingDetails.innerText = steps[stepIdx];
+                        stepIdx++;
+                    }
+                }, 300);
+
+                // Process Image
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const img = new Image();
+                    img.onload = function() {
+                        // Canvas Resize Logic
+                        previewCanvas.width = selectedPreset.w;
+                        previewCanvas.height = selectedPreset.h;
+                        
+                        // Draw image to fit/cover (simple resize for prototype)
+                        // In a real app we would do smart cropping
+                        
+                        // Calculate aspect ratios
+                        const srcRatio = img.width / img.height;
+                        const dstRatio = selectedPreset.w / selectedPreset.h;
+                        
+                        let renderW, renderH, offsetX, offsetY;
+
+                        if (srcRatio > dstRatio) {
+                            // Image is wider than destination
+                            renderH = selectedPreset.h;
+                            renderW = img.width * (selectedPreset.h / img.height);
+                            offsetX = -(renderW - selectedPreset.w) / 2;
+                            offsetY = 0;
+                        } else {
+                            // Image is taller than destination
+                            renderW = selectedPreset.w;
+                            renderH = img.height * (selectedPreset.w / img.width);
+                            offsetX = 0;
+                            offsetY = -(renderH - selectedPreset.h) / 2;
+                        }
+
+                        ctx.drawImage(img, offsetX, offsetY, renderW, renderH);
+
+                        // Finish Processing after delay
+                        setTimeout(() => {
+                            clearInterval(interval);
+                            showSuccessView();
+                        }, 1500);
+                    }
+                    img.src = event.target.result;
+                }
+                reader.readAsDataURL(file);
+            } else {
+                // Cancelled
+                resetApp();
+            }
+        }
+
+        // --- View 3: Success ---
+        function showSuccessView() {
+            viewProcessing.classList.add('hidden');
+            viewSuccess.classList.remove('hidden');
+
+            // Generate Simulated Size
+            // Random size between 80% and 98% of the limit
+            const percentage = 0.8 + (Math.random() * 0.19);
+            const simulatedSize = Math.floor(selectedPreset.kb * percentage);
+
+            // Populate Checklist
+            document.getElementById('res-dims').innerText = `${selectedPreset.w}x${selectedPreset.h} px`;
+            document.getElementById('res-size').innerText = `${simulatedSize} KB`;
+            document.getElementById('res-desc').innerText = selectedPreset.desc.split('.')[0] || "Standard"; // Shorten desc
+        }
+
+        function resetApp() {
+            // Reset Values
+            fileInput.value = '';
+            selectedPreset = null;
+            
+            // Reset Views
+            viewSuccess.classList.add('hidden');
+            viewProcessing.classList.add('hidden');
+            viewDashboard.classList.remove('hidden');
+            
+            // Scroll to top
+            window.scrollTo(0,0);
+        }
+
+        // Start
+        init();
+    </script>
+</body>
+</html>
